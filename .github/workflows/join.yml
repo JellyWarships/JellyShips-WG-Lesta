@@ -1,0 +1,78 @@
+name: 加入 JellyWarships
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  invite:
+    if: >-
+      github.repository == 'JellyWarships/JellyShips-WG-Lesta' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.issue.title == '加入 JellyWarships' &&
+        github.event.issue.user.type == 'User' &&
+        github.event.issue.user.id == github.event.sender.id))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 核对成员状态并邀请申请者
+        id: invitation
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.ORG_INVITE_TOKEN }}
+          script: |
+            const org = context.repo.owner;
+            if (context.eventName === 'workflow_dispatch') {
+              // 手动运行只检查组织邀请接口的连接，不发送邀请。
+              await github.rest.orgs.listPendingInvitations({ org, per_page: 1 });
+              return;
+            }
+
+            const applicant = context.payload.issue.user;
+            async function membershipState() {
+              try {
+                const membership = await github.rest.orgs.getMembershipForUser({
+                  org, username: applicant.login
+                });
+                return membership.data.state;
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+            let state = await membershipState();
+            if (!state) {
+              try {
+                await github.rest.orgs.createInvitation({
+                  org, invitee_id: applicant.id, role: 'direct_member'
+                });
+                state = 'pending';
+              } catch (error) {
+                if (error.status !== 422) throw error;
+                state = await membershipState();
+                if (!state) throw error;
+              }
+            }
+            if (!['active', 'pending'].includes(state)) throw new Error('未知的成员状态');
+            core.setOutput('state', state);
+
+      - name: 回复申请
+        if: ${{ always() && github.event_name == 'issues' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          MEMBERSHIP: ${{ steps.invitation.outputs.state }}
+        with:
+          script: |
+            const target = { ...context.repo, issue_number: context.issue.number };
+            const state = process.env.MEMBERSHIP;
+            const responses = {
+              active: '你已经是 JellyWarships 成员。',
+              pending: '你的邀请正在等待接受。请用提交本申请的账号打开[组织邀请](https://github.com/orgs/JellyWarships/invitation)，点击 Accept invitation。'
+            };
+            const body = responses[state] || '暂时无法处理申请。本帖保留，维护者可在排查后重新运行这次工作流。';
+            await github.rest.issues.createComment({ ...target, body });
+            if (responses[state]) await github.rest.issues.update({ ...target, state: 'closed' });
