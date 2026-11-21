@@ -1,0 +1,49 @@
+﻿Q弹MOD（果冻船体）—— 莱斯塔俄服 26.11 / 客户端 8871067
+================================================================
+
+本包强度：（amplitude 0.920，lean 5.0 度）
+
+安装
+----
+1. 关闭游戏。
+2. 把本包里的 res_mods 文件夹“合并”进游戏的 res_mods 目录：
+
+       ...\Korabli\bin\8871067\res_mods
+
+   合并后应当存在：
+
+       ...\res_mods\PnFMods\QtanLive\Main.py
+       ...\res_mods\PnFMods\QtanLive\qtan_live_config.txt
+
+   （直接把这个 res_mods 拖进 Korabli 根目录、覆盖同名项也可以；
+     已有同名文件夹就覆盖。）
+
+3. 启动游戏，进港口：船体会持续 Q 弹；战斗里队友/敌方的船同样生效。
+
+注意
+----
+* 四个档位（1 倍 / 5 倍 / 8 倍 / 12 倍）**只能装一个**。
+  装两个会让两份模组每帧互相覆盖同一个矩阵，表现为闪烁。
+  换档 = 删掉旧的 PnFMods\QtanLive，再放入新档的。
+* 本包自带 PnFModsLoader.py（0 字节，PnF 模组加载标记）。
+  如果客户端里已经有它，覆盖成 0 字节也没问题。
+* 客户端大版本更新后 bin\8871067 这个目录可能改名，
+  放到新版本号对应的 res_mods 下即可。
+* 效果是“整船拉宽/压高”的呼吸式形变，不是原版那种分段错开形变
+  （26.11 的分段模型不参与渲染，拿不到）。
+
+调参
+----
+res_mods\PnFMods\QtanLive\qtan_live_config.txt
+
+    amplitude  幅度（0 ~ 0.95）
+    period     振铃周期（秒），原版 Q弹 是 0.46
+    damping    阻尼，越大越闷
+    lean_deg   额外左右摇摆（度）
+    axes       auto / 0,1 / 1,0
+
+改完重启游戏生效。运行日志：同目录 qtan_live.txt。
+
+卸载
+----
+删除 res_mods\PnFMods\QtanLive 整个文件夹即可，不影响其它模组。
